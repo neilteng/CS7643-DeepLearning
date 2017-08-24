@@ -33,6 +33,7 @@ class LinearClassifier:
 
     # Run stochastic gradient descent to optimize W
     loss_history = []
+    acc_history = []
 
     mask = np.arange(num_train)
     np.random.shuffle(mask)
@@ -61,22 +62,29 @@ class LinearClassifier:
 
       # evaluate loss and gradient
       loss, grad = self.loss(X_batch, y_batch, reg)
+
       loss_history.append(loss)
+      y_batch_pred = self.predict(X_batch)
+      acc = np.mean(y_batch==y_batch_pred)
+      acc_history.append(acc)
 
       # perform parameter update
       #########################################################################
       # TODO:                                                                 #
       # Update the weights using the gradient and the learning rate.          #
       #########################################################################
+      # Learning rate decay
+      if (it % 1000 == 999):
+        learning_rate *= 0.1
       self.W = self.W - learning_rate * grad
       #########################################################################
       #                       END OF YOUR CODE                                #
       #########################################################################
 
       if verbose and it % 100 == 0:
-        print 'iteration %d / %d: loss %f' % (it, num_iters, loss)
+        print 'iteration %d / %d: loss %f, acc %f' % (it, num_iters, loss, acc)
 
-    return loss_history
+    return loss_history, acc_history
 
   def predict(self, X):
     """

@@ -33,16 +33,15 @@ def softmax_loss_vectorized(W, X, y, reg):
   # Use the fact that softmax(z) = softmax(z+c)
   logits= logits - np.max(logits, axis=0)
 
-  softmax_sum = np.sum(np.exp(logits), axis=0)
+  softmax_sum = np.sum(np.exp(logits), axis=0, keepdims=True)
 
-  loss = - 1.0 / num_train * np.sum(np.choose(y, logits) - np.log(softmax_sum)) + reg * np.sum(np.multiply(W,W))
+  loss = - 1.0 / num_train * np.sum(logits[y, np.arange(num_train)] - np.log(softmax_sum)) + 0.5 * reg * np.sum(np.multiply(W,W))
 
-  zeros_padding = np.zeros(shape=(num_classes, num_train))
-  intermediate =  np.exp(logits)
-  intermediate = 1 - intermediate / np.sum(intermediate, axis=0)
-  zeros_padding[y, np.arange(num_train)] = np.choose(y, intermediate)
+  exp_scores =  np.exp(logits)
+  probs = exp_scores / np.sum(exp_scores, axis=0, keepdims=True)
+  probs[y, np.arange(num_train)] -= 1
 
-  dW = 2.0 * reg * W  - 1.0 / num_train * zeros_padding.dot(X.T)
+  dW = reg * W  + 1.0 / num_train * probs.dot(X.T)
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
