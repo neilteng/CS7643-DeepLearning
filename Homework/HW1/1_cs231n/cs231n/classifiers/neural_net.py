@@ -72,6 +72,7 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # unpack variables from the model dictionary
   W1,b1,W2,b2 = model['W1'], model['b1'], model['W2'], model['b2']
   N, D = X.shape
+  H, C = W2.shape
 
   # compute the forward pass
   scores = None
@@ -80,24 +81,18 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # Store the result in the scores variable, which should be an array of      #
   # shape (N, C).                                                             #
   #############################################################################
-  D, H = W1.shape
-  _, C = W2.shape
-  assert(H == _)
-  N, _ = X.shape
-  assert(D == _)
-
   X_ = np.hstack((X, np.ones((N, 1))))
   W1_ = np.vstack((W1, b1.reshape(1, H)))
   W2_ = np.vstack((W2, b2.reshape(1, C)))
 
   hiddens = X_.dot(W1_)
-  activates = np.maximum(hiddens, 0)
-  activates = np.hstack((activates, np.ones((N, 1))))
-  scores = activates.dot(W2_)
+  relu = np.maximum(hiddens, 0)
+  relu_ = np.hstack((relu, np.ones((N, 1))))
+  scores = relu_.dot(W2_)
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
-  
+
   # If the targets are not given then jump out, we're done
   if y is None:
     return scores
@@ -111,7 +106,12 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # classifier loss. So that your results match ours, multiply the            #
   # regularization loss by 0.5                                                #
   #############################################################################
-  pass
+  # Use the fact that softmax(z) = softmax(z+c)
+  scores = scores - np.amax(scores, axis=1, keepdims=True)
+
+  softmax_sum = np.sum(np.exp(scores), axis=1)
+
+  loss = - 1.0 / N * np.sum(scores[np.arange(N), y] - np.log(softmax_sum)) + 0.5 * reg * (np.sum(np.multiply(W1, W1)) + np.sum(np.multiply(W2, W2)))
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
