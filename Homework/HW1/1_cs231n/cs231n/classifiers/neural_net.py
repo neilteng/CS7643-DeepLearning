@@ -80,7 +80,20 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # Store the result in the scores variable, which should be an array of      #
   # shape (N, C).                                                             #
   #############################################################################
-  pass
+  D, H = W1.shape
+  _, C = W2.shape
+  assert(H == _)
+  N, _ = X.shape
+  assert(D == _)
+
+  X_ = np.hstack((X, np.ones((N, 1))))
+  W1_ = np.vstack((W1, b1.reshape(1, H)))
+  W2_ = np.vstack((W2, b2.reshape(1, C)))
+
+  hiddens = X_.dot(W1_)
+  activates = np.maximum(hiddens, 0)
+  activates = np.hstack((activates, np.ones((N, 1))))
+  scores = activates.dot(W2_)
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
