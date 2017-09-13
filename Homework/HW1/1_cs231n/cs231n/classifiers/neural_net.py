@@ -109,9 +109,10 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # Use the fact that softmax(z) = softmax(z+c)
   scores = scores - np.amax(scores, axis=1, keepdims=True)
 
-  softmax_sum = np.sum(np.exp(scores), axis=1)
+  sum_exp_scores = np.sum(np.exp(scores), axis=1)
 
-  loss = - 1.0 / N * np.sum(scores[np.arange(N), y] - np.log(softmax_sum)) + 0.5 * reg * (np.sum(np.multiply(W1, W1)) + np.sum(np.multiply(W2, W2)))
+  loss = - 1.0 / N * np.sum(scores[np.arange(N), y] - np.log(sum_exp_scores)) + \
+      0.5 * reg * (np.sum(np.multiply(W1, W1)) + np.sum(np.multiply(W2, W2)))
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
@@ -123,7 +124,22 @@ def two_layer_net(X, model, y=None, reg=0.0):
   # and biases. Store the results in the grads dictionary. For example,       #
   # grads['W1'] should store the gradient on W1, and be a matrix of same size #
   #############################################################################
-  pass
+  exp_scores = np.exp(scores)
+  probs = exp_scores / sum_exp_scores.reshape(N,1)
+  probs[np.arange(N), y] -= 1
+  probs /= N
+
+  dW2_ = relu_.T.dot(probs)
+  grads['W2'] = dW2_[0:-1] + reg * W2
+  grads['b2'] = dW2_[-1].flatten()
+
+  drelu_ = probs.dot(W2_.T)
+  drelu = drelu_[:,0:-1]
+  drelu[relu<=0] = 0
+
+  dW1_ = X_.T.dot(drelu)
+  grads['W1'] = dW1_[0:-1] + reg * W1
+  grads['b1'] = dW1_[-1].flatten()
   #############################################################################
   #                              END OF YOUR CODE                             #
   #############################################################################
