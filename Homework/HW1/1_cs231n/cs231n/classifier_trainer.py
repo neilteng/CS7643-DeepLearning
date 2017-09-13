@@ -68,7 +68,7 @@ class ClassifierTrainer(object):
     train_acc_history = []
     val_acc_history = []
     for it in range(num_iters):
-      if it % 10 == 0:  print('starting iteration ', it)
+      if it % 50 == 0:  print('starting iteration ', it)
 
       # get batch of data
       if sample_batches:
@@ -104,7 +104,6 @@ class ClassifierTrainer(object):
           #                      END OF YOUR CODE                             #
           #####################################################################
         elif update == 'rmsprop':
-          eps = 1e-8
           if not p in self.step_cache: 
             self.step_cache[p] = np.zeros(grads[p].shape)
           #####################################################################
