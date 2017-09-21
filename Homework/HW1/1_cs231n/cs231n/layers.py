@@ -12,7 +12,7 @@ def affine_forward(x, w, b):
   x - Input data, of shape (N, d_1, ..., d_k)
   w - Weights, of shape (D, M)
   b - Biases, of shape (M,)
-  
+
   Returns a tuple of:
   - out: output, of shape (N, M)
   - cache: (x, w, b)
@@ -22,7 +22,14 @@ def affine_forward(x, w, b):
   # TODO: Implement the affine forward pass. Store the result in out. You     #
   # will need to reshape the input into rows.                                 #
   #############################################################################
-  pass
+  x_flatten = x.reshape(x.shape[0], -1)
+  N, D = x_flatten.shape
+
+  x_flatten_cat = np.hstack((x_flatten, np.ones(shape=(N, 1))))
+  w_b_cat = np.vstack((w, b.reshape(1, -1)))
+
+  out = x_flatten_cat.dot(w_b_cat)
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -50,7 +57,20 @@ def affine_backward(dout, cache):
   #############################################################################
   # TODO: Implement the affine backward pass.                                 #
   #############################################################################
-  pass
+  xshape = x.shape
+  x_flatten = x.reshape(x.shape[0], -1)
+  N, D = x_flatten.shape
+
+  x_flatten_cat = np.hstack((x_flatten, np.ones(shape=(N, 1))))
+  w_b_cat = np.vstack((w, b.reshape(1, -1)))
+
+  dX = dout.dot(w_b_cat.T)
+  dx = dX[:,:-1]
+  dx = dx.reshape(xshape)
+
+  dW = x_flatten_cat.T.dot(dout)
+  dw = dW[:-1,:]
+  db = dW[-1]
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -72,7 +92,7 @@ def relu_forward(x):
   #############################################################################
   # TODO: Implement the ReLU forward pass.                                    #
   #############################################################################
-  pass
+  out = np.maximum(x, 0)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -95,7 +115,8 @@ def relu_backward(dout, cache):
   #############################################################################
   # TODO: Implement the ReLU backward pass.                                   #
   #############################################################################
-  pass
+  dx = dout
+  dx[x<=0] = 0
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -130,7 +151,28 @@ def conv_forward_naive(x, w, b, conv_param):
   # TODO: Implement the convolutional forward pass.                           #
   # Hint: you can use the function np.pad for padding.                        #
   #############################################################################
-  pass
+  stride, pad = conv_param['stride'], conv_param['pad']
+  N, C, H, W = x.shape
+  F, _, HH, WW = w.shape
+  H_out = int(1 + (H + 2 * pad - HH) / stride)
+  W_out = int(1 + (W + 2 * pad - WW) / stride)
+
+  x_padded = np.zeros(shape=(N, C, H+2*pad, W+2*pad))
+  x_padded[:, :, pad:pad+H, pad:pad+W] = x
+
+  out = np.zeros(shape=(N, F, H_out, W_out))
+
+  half_HH = HH / 2
+  half_WW = WW / 2
+
+  for n_out in range(N):
+    for f_out in range(F):
+      for h_out in range(H_out):
+        for w_out in range(W_out):
+          x_padded_window = x_padded[n_out, :, stride*h_out:stride*h_out+HH, stride*w_out:stride*w_out+WW]
+          kernel = w[f_out, :, :, :]
+          out[n_out, f_out, h_out, w_out] = np.sum(np.multiply(x_padded_window, kernel)) + b[f_out]
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -151,11 +193,33 @@ def conv_backward_naive(dout, cache):
   - dw: Gradient with respect to w
   - db: Gradient with respect to b
   """
+  x, w, b, conv_param = cache
   dx, dw, db = None, None, None
   #############################################################################
   # TODO: Implement the convolutional backward pass.                          #
   #############################################################################
-  pass
+  stride, pad = conv_param['stride'], conv_param['pad']
+  N, C, H, W = x.shape
+  F, _, HH, WW = w.shape
+  _, _, H_out, W_out = dout.shape
+
+  x_padded = np.zeros(shape=(N, C, H+2*pad, W+2*pad))
+  x_padded[:, :, pad:pad+H, pad:pad+W] = x
+
+  dx_padded = np.zeros_like(x_padded)
+  dw = np.zeros(shape=(F, C, HH, WW))
+  db = np.zeros(shape=(F,))
+
+  for n_out in range(N):
+    for f_out in range(F):
+      for h_out in range(H_out):
+        for w_out in range(W_out):
+          dx_padded[n_out, :, stride*h_out:stride*h_out+HH, stride*w_out:stride*w_out+WW] += dout[n_out, f_out, h_out, w_out] * w[f_out, :, :, :]
+          dw[f_out, :, :, :] += dout[n_out, f_out, h_out, w_out] * x_padded[n_out, :, stride*h_out:stride*h_out+HH, stride*w_out:stride*w_out+WW]
+          db[f_out] += dout[n_out, f_out, h_out, w_out]
+
+  dx = dx_padded[:, :, pad:pad+H, pad:pad+W]
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -181,7 +245,18 @@ def max_pool_forward_naive(x, pool_param):
   #############################################################################
   # TODO: Implement the max pooling forward pass                              #
   #############################################################################
-  pass
+  pool_height, pool_width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+  N, C, H, W = x.shape
+  H_out = int(1 + (H-pool_height)/stride)
+  W_out = int(1 + (W-pool_width)/stride)
+
+  out = np.zeros(shape=(N, C, H_out, W_out))
+
+  for n_out in range(N):
+    for c_out in range(C):
+      for h_out in range(H_out):
+        for w_out in range(W_out):
+          out[n_out, c_out, h_out, w_out] = np.max(x[n_out, c_out, stride*h_out:stride*h_out+pool_height, stride*w_out:stride*w_out+pool_width])
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -201,10 +276,24 @@ def max_pool_backward_naive(dout, cache):
   - dx: Gradient with respect to x
   """
   dx = None
+  x, pool_param = cache
   #############################################################################
   # TODO: Implement the max pooling backward pass                             #
   #############################################################################
-  pass
+  pool_height, pool_width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+  N, C, H, W = x.shape
+  H_out = int(1 + (H-pool_height)/stride)
+  W_out = int(1 + (W-pool_width)/stride)
+
+  dx = np.zeros_like(x)
+
+  for n_out in range(N):
+    for c_out in range(C):
+      for h_out in range(H_out):
+        for w_out in range(W_out):
+          x_padded_window =  x[n_out, c_out, stride*h_out:stride*h_out+pool_height, stride*w_out:stride*w_out+pool_width]
+          argmax_indx = np.unravel_index(x_padded_window.argmax(), x_padded_window.shape)
+          dx[n_out, c_out, stride*h_out:stride*h_out+pool_height, stride*w_out:stride*w_out+pool_width][argmax_indx] = dout[n_out, c_out, h_out, w_out]
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
