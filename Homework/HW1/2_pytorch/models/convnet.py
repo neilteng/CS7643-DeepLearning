@@ -19,7 +19,9 @@ class CNN(nn.Module):
         #############################################################################
         # TODO: Initialize anything you need for the forward pass
         #############################################################################
-        pass
+        channels, height, width = im_size
+        self.conv = nn.Conv2d(channels, hidden_dim, kernel_size=kernel_size)
+        self.fc = nn.Linear(int(hidden_dim*(height-kernel_size+1)/2*(width-kernel_size+1)/2), n_classes)
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -44,9 +46,18 @@ class CNN(nn.Module):
         #############################################################################
         # TODO: Implement the forward pass. This should take few lines of code.
         #############################################################################
-        pass
+        images = F.max_pool2d(F.relu(self.conv(images)), (2,2))
+        images = images.view(-1, self.num_flat_features(images))
+        scores = F.relu(self.fc(images))
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
         return scores
+
+    def num_flat_features(self, x):
+        size = x.size()[1:]  # all dimensions except the batch dimension
+        num_features = 1
+        for s in size:
+            num_features *= s
+        return num_features
 

@@ -12,7 +12,7 @@ from torch.autograd import Variable
 from cifar10 import CIFAR10
 
 # You should implement these (softmax.py, twolayernn.py, convnet.py)
-import models.softmax 
+import models.softmax
 import models.twolayernn
 import models.convnet
 import models.mymodel
@@ -108,7 +108,7 @@ if args.cuda:
 # TODO: Initialize an optimizer from the torch.optim package using the
 # appropriate hyperparameters found in args. This only requires one line.
 #############################################################################
-pass
+optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 #############################################################################
 #                             END OF YOUR CODE                              #
 #############################################################################
@@ -131,7 +131,11 @@ def train(epoch):
         # TODO: Update the parameters in model using the optimizer from above.
         # This only requires a couple lines of code.
         #############################################################################
-        pass
+        optimizer.zero_grad()
+        output = model(images)
+        loss = criterion(output, targets)
+        loss.backward()
+        optimizer.step()
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
