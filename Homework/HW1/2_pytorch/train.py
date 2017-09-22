@@ -95,8 +95,7 @@ elif args.model == 'convnet':
     model = models.convnet.CNN(im_size, args.hidden_dim, args.kernel_size,
                                n_classes)
 elif args.model == 'mymodel':
-    model = models.mymodel.MyModel(im_size, args.hidden_dim,
-                               args.kernel_size, n_classes)
+    model = models.mymodel.MyModel(im_size, n_classes)
 else:
     raise Exception('Unknown model {}'.format(args.model))
 # cross-entropy loss function
@@ -155,6 +154,7 @@ def train(epoch):
                   'Train Loss: {:.6f}\tVal Loss: {:.6f}\tVal Acc: {}'.format(
                 epoch, examples_this_epoch, len(train_loader.dataset),
                 epoch_progress, train_loss, val_loss, val_acc))
+            model.train()
 
 def evaluate(split, verbose=False, n_batches=None):
     '''

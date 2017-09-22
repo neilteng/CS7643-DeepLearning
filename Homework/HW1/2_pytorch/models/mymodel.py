@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 
 class MyModel(nn.Module):
-    def __init__(self, im_size, hidden_dim, kernel_size, n_classes):
+    def __init__(self, im_size, n_classes):
         '''
         Extra credit model
 
@@ -19,7 +19,32 @@ class MyModel(nn.Module):
         #############################################################################
         # TODO: Initialize anything you need for the forward pass
         #############################################################################
-        pass
+        channels, height, width = im_size
+        # 3, 32, 32
+        self.conv1_1 = nn.Conv2d(channels, 64, kernel_size=3, padding=1)
+        self.conv1_2 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        # 64, 16, 16
+        self.conv2_1 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        self.conv2_2 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        # 128, 8, 8
+        self.conv3_1 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
+        self.conv3_2 = nn.Conv2d(256, 256, kernel_size=3, padding=1)
+        self.conv3_3 = nn.Conv2d(256, 256, kernel_size=3, padding=1)
+        # 256, 4, 4
+        # self.conv4_1 = nn.Conv2d(256, 512, kernel_size=3, padding=1)
+        # self.conv4_2 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        # self.conv4_3 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        # # 512, 2, 2
+        # self.conv5_1 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        # self.conv5_2 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        # self.conv5_3 = nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        # # 512, 1, 1
+        self.fc1 = nn.Linear(int(256*(height/2**3)*(width/2**3)), 4096)
+        self.fc2 = nn.Linear(4096, 4096)
+        # 4096
+        self.fc3 = nn.Linear(4096, 10)
+
+        self.activations = nn.LeakyReLU()
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -44,9 +69,37 @@ class MyModel(nn.Module):
         #############################################################################
         # TODO: Implement the forward pass.
         #############################################################################
-        pass
+        images = self.activations(self.conv1_1(images))
+        images = self.activations(self.conv1_2(images))
+        images = F.max_pool2d(images, (2,2))
+
+        images = self.activations(self.conv2_1(images))
+        images = self.activations(self.conv2_2(images))
+        images = F.max_pool2d(images, (2,2))
+
+        images = self.activations(self.conv3_1(images))
+        images = self.activations(self.conv3_2(images))
+        images = self.activations(self.conv3_3(images))
+        images = F.max_pool2d(images, (2,2))
+
+        # images = self.activations(self.conv4_1(images))
+        # images = self.activations(self.conv4_2(images))
+        # images = self.activations(self.conv4_3(images))
+        # images = F.max_pool2d(images, (2,2))
+
+        # images = self.activations(self.conv5_1(images))
+        # images = self.activations(self.conv5_2(images))
+        # images = self.activations(self.conv5_3(images))
+        # images = F.max_pool2d(images, (2,2))
+
+        images = images.view(images.size(0), -1)
+
+        images = self.activations(self.fc1(images))
+        images = F.dropout(images, training=self.training)
+        images = self.activations(self.fc2(images))
+        images = F.dropout(images, training=self.training)
+        scores = self.fc3(images)
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
         return scores
-
