@@ -109,6 +109,10 @@ if args.cuda:
 # appropriate hyperparameters found in args. This only requires one line.
 #############################################################################
 optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+def adjust_lr(optimizer, epoch):
+    lr = args.lr * (0.5 ** (epoch // 1))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
 #############################################################################
 #                             END OF YOUR CODE                              #
 #############################################################################
@@ -186,6 +190,7 @@ def evaluate(split, verbose=False, n_batches=None):
 # train the model one epoch at a time
 for epoch in range(1, args.epochs + 1):
     train(epoch)
+    adjust_lr(optimizer, epoch)
 evaluate('test', verbose=True)
 
 # Save the model (architecture and weights)
