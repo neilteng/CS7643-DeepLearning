@@ -4,11 +4,11 @@
 #############################################################################
 python -u train.py \
     --model twolayernn \
-    --hidden-dim 10 \
-    --epochs 1 \
-    --weight-decay 0.0 \
-    --momentum 0.0 \
-    --batch-size 512 \
+    --hidden-dim 800 \
+    --epochs 10 \
+    --weight-decay 0.01 \
+    --momentum 0.5 \
+    --batch-size 256 \
     --lr 0.01 | tee twolayernn.log
 #############################################################################
 #                             END OF YOUR CODE                              #
