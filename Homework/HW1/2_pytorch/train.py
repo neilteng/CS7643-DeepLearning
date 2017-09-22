@@ -111,6 +111,7 @@ if args.cuda:
 optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 def adjust_lr(optimizer, epoch):
     lr = args.lr * (0.5 ** (epoch // 1))
+    print('[{}] learning rate is {}'.format(epoch,lr))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 #############################################################################
@@ -139,6 +140,8 @@ def train(epoch):
         output = model(images)
         loss = criterion(output, targets)
         loss.backward()
+        #  for param in model.parameters():
+        #      print(param.grad)
         optimizer.step()
         #############################################################################
         #                             END OF YOUR CODE                              #

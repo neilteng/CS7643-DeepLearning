@@ -46,9 +46,9 @@ class CNN(nn.Module):
         #############################################################################
         # TODO: Implement the forward pass. This should take few lines of code.
         #############################################################################
-        images = F.max_pool2d(F.relu(self.conv(images)), (2,2))
+        images = F.max_pool2d(F.leaky_relu(self.conv(images)), (2,2))
         images = images.view(-1, self.num_flat_features(images))
-        scores = F.relu(self.fc(images))
+        scores = self.fc(images)
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
