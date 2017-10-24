@@ -137,7 +137,36 @@ class CaptioningRNN(object):
         # defined above to store loss and gradients; grads[k] should give the      #
         # gradients for self.params[k].                                            #
         ############################################################################
-        pass
+        # RNN
+        # forward
+        h0 = features.dot(W_proj) + b_proj.reshape(1, -1) # h0_cache
+
+        wrd_embd, wrd_embd_cache = word_embedding_forward(captions_in, W_embed)
+
+        rnn_f, rnn_f_cache = rnn_forward(wrd_embd, h0, Wx, Wh, b)
+
+        tmp_aff, tmp_aff_cache = temporal_affine_forward(rnn_f, W_vocab, b_vocab)
+
+        loss, d_tmp_aff = temporal_softmax_loss(tmp_aff, captions_out, mask)
+
+        # backward
+        d_rnn_f, d_W_vocab, d_b_vocab = temporal_affine_backward(d_tmp_aff, tmp_aff_cache)
+
+        d_wrd_embd, d_h0, d_Wx, d_Wh, d_b = rnn_backward(d_rnn_f, rnn_f_cache)
+
+        d_W_embed = word_embedding_backward(d_wrd_embd, wrd_embd_cache)
+
+        d_W_proj = features.T.dot(d_h0)
+        d_b_proj = np.sum(d_h0, axis=0)
+
+        grads['W_proj'] = d_W_proj
+        grads['b_proj'] = d_b_proj
+        grads['W_embed'] = d_W_embed
+        grads['Wx'] = d_Wx
+        grads['Wh'] = d_Wh
+        grads['b']  = d_b
+        grads['W_vocab'] = d_W_vocab
+        grads['b_vocab'] = d_b_vocab
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -199,7 +228,16 @@ class CaptioningRNN(object):
         # functions; you'll need to call rnn_step_forward or lstm_step_forward in #
         # a loop.                                                                 #
         ###########################################################################
-        pass
+        h = features.dot(W_proj) + b_proj.reshape(1, -1) # h0_cache
+        word = np.repeat(self._start, N)
+        for wd_idx in range(max_length):
+            wrd_embd = W_embed[word]
+            h_next, _ = rnn_step_forward(wrd_embd, h, Wx, Wh, b)
+            next_word_scores = h_next.dot(W_vocab) + b_vocab
+            next_word = np.argmax(next_word_scores, axis=1)
+            captions[:, wd_idx] = next_word
+            word = next_word
+            h = h_next
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
