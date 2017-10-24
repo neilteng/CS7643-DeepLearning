@@ -70,6 +70,9 @@ class CaptioningRNN(object):
         self.params['W_vocab'] /= np.sqrt(hidden_dim)
         self.params['b_vocab'] = np.zeros(vocab_size)
 
+        # keep hidden_dim
+        self.hidden_dim = hidden_dim
+
         # Cast parameters to correct dtype
         for k, v in self.params.items():
             self.params[k] = v.astype(self.dtype)
@@ -137,22 +140,31 @@ class CaptioningRNN(object):
         # defined above to store loss and gradients; grads[k] should give the      #
         # gradients for self.params[k].                                            #
         ############################################################################
-        # RNN
         # forward
         h0 = features.dot(W_proj) + b_proj.reshape(1, -1) # h0_cache
 
         wrd_embd, wrd_embd_cache = word_embedding_forward(captions_in, W_embed)
 
-        rnn_f, rnn_f_cache = rnn_forward(wrd_embd, h0, Wx, Wh, b)
+        if self.cell_type == 'rnn':
+            rnn_f, rnn_f_cache = rnn_forward(wrd_embd, h0, Wx, Wh, b)
 
-        tmp_aff, tmp_aff_cache = temporal_affine_forward(rnn_f, W_vocab, b_vocab)
+            tmp_aff, tmp_aff_cache = temporal_affine_forward(rnn_f, W_vocab, b_vocab)
+        else:
+            lstm_f, lstm_f_cache = lstm_forward(wrd_embd, h0, Wx, Wh, b)
+
+            tmp_aff, tmp_aff_cache = temporal_affine_forward(lstm_f, W_vocab, b_vocab)
 
         loss, d_tmp_aff = temporal_softmax_loss(tmp_aff, captions_out, mask)
 
         # backward
-        d_rnn_f, d_W_vocab, d_b_vocab = temporal_affine_backward(d_tmp_aff, tmp_aff_cache)
+        if self.cell_type == 'rnn':
+            d_rnn_f, d_W_vocab, d_b_vocab = temporal_affine_backward(d_tmp_aff, tmp_aff_cache)
 
-        d_wrd_embd, d_h0, d_Wx, d_Wh, d_b = rnn_backward(d_rnn_f, rnn_f_cache)
+            d_wrd_embd, d_h0, d_Wx, d_Wh, d_b = rnn_backward(d_rnn_f, rnn_f_cache)
+        else:
+            d_lstm_f, d_W_vocab, d_b_vocab = temporal_affine_backward(d_tmp_aff, tmp_aff_cache)
+
+            d_wrd_embd, d_h0, d_Wx, d_Wh, d_b = lstm_backward(d_lstm_f, lstm_f_cache)
 
         d_W_embed = word_embedding_backward(d_wrd_embd, wrd_embd_cache)
 
@@ -230,9 +242,13 @@ class CaptioningRNN(object):
         ###########################################################################
         h = features.dot(W_proj) + b_proj.reshape(1, -1) # h0_cache
         word = np.repeat(self._start, N)
+        c = np.zeros(shape=(N, self.hidden_dim))
         for wd_idx in range(max_length):
             wrd_embd = W_embed[word]
-            h_next, _ = rnn_step_forward(wrd_embd, h, Wx, Wh, b)
+            if self.cell_type == 'rnn':
+                h_next, _ = rnn_step_forward(wrd_embd, h, Wx, Wh, b)
+            else:
+                h_next, c, _ = lstm_step_forward(wrd_embd, h, c, Wx, Wh, b)
             next_word_scores = h_next.dot(W_vocab) + b_vocab
             next_word = np.argmax(next_word_scores, axis=1)
             captions[:, wd_idx] = next_word
