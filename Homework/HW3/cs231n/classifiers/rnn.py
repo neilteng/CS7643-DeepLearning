@@ -19,7 +19,7 @@ class CaptioningRNN(object):
     """
 
     def __init__(self, word_to_idx, input_dim=512, wordvec_dim=128,
-                 hidden_dim=128, cell_type='rnn', dtype=np.float32):
+                 hidden_dim=128, cell_type='rnn', dtype=np.float32, weight_decay=0.):
         """
         Construct a new CaptioningRNN instance.
 
@@ -41,6 +41,7 @@ class CaptioningRNN(object):
         self.word_to_idx = word_to_idx
         self.idx_to_word = {i: w for w, i in word_to_idx.items()}
         self.params = {}
+        self.weight_decay = weight_decay
 
         vocab_size = len(word_to_idx)
 
@@ -171,13 +172,13 @@ class CaptioningRNN(object):
         d_W_proj = features.T.dot(d_h0)
         d_b_proj = np.sum(d_h0, axis=0)
 
-        grads['W_proj'] = d_W_proj
-        grads['b_proj'] = d_b_proj
-        grads['W_embed'] = d_W_embed
-        grads['Wx'] = d_Wx
-        grads['Wh'] = d_Wh
+        grads['W_proj'] = d_W_proj + 2 * self.weight_decay * W_proj
+        grads['b_proj'] = d_b_proj 
+        grads['W_embed'] = d_W_embed + 2 * self.weight_decay * W_embed
+        grads['Wx'] = d_Wx + 2 * self.weight_decay * Wx
+        grads['Wh'] = d_Wh + 2 * self.weight_decay * Wh
         grads['b']  = d_b
-        grads['W_vocab'] = d_W_vocab
+        grads['W_vocab'] = d_W_vocab + 2 * self.weight_decay * W_vocab
         grads['b_vocab'] = d_b_vocab
         ############################################################################
         #                             END OF YOUR CODE                             #
